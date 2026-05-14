@@ -86,6 +86,37 @@ abstract class Entity implements \JsonSerializable
     }
     // }}}
 
+    // {{{ _magickError()
+    /**
+     * @brief _magickError
+     * @param string $key
+     * @param string $key
+     * @return void
+     * @throws \Exception
+     */
+    protected function _magickError(string $action, string $key): void
+    {
+        $file = "unknown file";
+        $line = "unknown line";
+
+        $trace = debug_backtrace();
+
+        foreach ($trace as $t) {
+            if (isset($t['file']) && isset($t['line']) && strpos($t['file'], __FILE__) === false) {
+                $file = $t['file'];
+                $line = $t['line'];
+                break;
+            }
+        }
+        trigger_error(
+            'Undefined property via ' . $action . '(): ' . $key
+            . ' in ' . $file
+            . ' on line ' . $line,
+            E_USER_WARNING,
+        );
+    }
+    // }}}
+
     // {{{ __get()
     /**
      * Get
@@ -109,13 +140,7 @@ abstract class Entity implements \JsonSerializable
             return $this->data[$k];
         }
 
-        $trace = debug_backtrace();
-        trigger_error(
-            'Undefined property via __get(): ' . $key
-            . ' in ' . $trace[0]['file']
-            . ' on line ' . $trace[0]['line'],
-            E_USER_WARNING,
-        );
+        $this->_magickError("__get", $key);
 
         return null;
     }
@@ -139,6 +164,8 @@ abstract class Entity implements \JsonSerializable
         $setter = "set" . ucfirst($k);
         if ($this->initialized && method_exists($this, $setter)) {
             $this->$setter($v);
+
+            return;
         }
         if (array_key_exists($k, $this->data) || !$this->initialized) {
             // add value if property exists and is not primary
@@ -149,15 +176,11 @@ abstract class Entity implements \JsonSerializable
                 );
                 $this->data[$k] = $v;
             }
+
+            return;
         }
 
-        $trace = debug_backtrace();
-        trigger_error(
-            'Undefined property via __set(): ' . $key
-            . ' in ' . $trace[0]['file']
-            . ' on line ' . $trace[0]['line'],
-            E_USER_WARNING,
-        );
+        $this->_magickError("__set", $key);
     }
     // }}}
 
@@ -190,13 +213,7 @@ abstract class Entity implements \JsonSerializable
             }
         }
 
-        $trace = debug_backtrace();
-        trigger_error(
-            'Undefined method via __call(): ' . $name
-            . ' in ' . $trace[0]['file']
-            . ' on line ' . $trace[0]['line'],
-            E_USER_WARNING,
-        );
+        $this->_magickError("__call", $name);
 
         return false;
     }

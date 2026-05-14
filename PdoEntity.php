@@ -84,7 +84,7 @@ abstract class PdoEntity extends Entity
      *
      * @return string
      **/
-    protected static function sqlConditionFor(string $name, array $values, &$params): string
+    protected static function sqlConditionFor(string $name, string|array $values, &$params): string
     {
         $escapedName = str_replace(".", "_", $name);
         if (!is_array($values)) {
