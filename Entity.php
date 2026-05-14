@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file    Entity.php
  *
@@ -10,6 +11,7 @@
  *
  * copyright (c) 2003-2014 Frank Hellenkamp [jonas@depage.net]
  */
+
 namespace Depage\Entity;
 
 abstract class Entity implements \JsonSerializable
@@ -23,7 +25,7 @@ abstract class Entity implements \JsonSerializable
      *
      * @var array
      */
-    protected static $fields = array();
+    protected static $fields = [];
 
     /**
      * @brief initialized
@@ -37,7 +39,7 @@ abstract class Entity implements \JsonSerializable
      *
      * @var array
      */
-    protected $data = array();
+    protected $data = [];
 
     /**
      * Types Array
@@ -47,7 +49,7 @@ abstract class Entity implements \JsonSerializable
      *
      * @var array
      */
-    protected $types = array();
+    protected $types = [];
 
     /**
      * Dirty Data
@@ -57,7 +59,7 @@ abstract class Entity implements \JsonSerializable
      *
      * @var array
      */
-    protected $dirty = array();
+    protected $dirty = [];
     // }}}
 
     // {{{ __constructor()
@@ -92,24 +94,28 @@ abstract class Entity implements \JsonSerializable
      *
      * @param string $property
      *
+     * @param string $key
+     *
      * @return mixed
      */
-    public function __get($key)
+    public function __get(string $key): mixed
     {
-        $getter = "get" . ucfirst($key);
+        $k = $key;
+        $getter = "get" . ucfirst($k);
         if (method_exists($this, $getter)) {
             return $this->$getter();
         }
-        if (array_key_exists($key, $this->data)) {
-            return $this->data[$key];
+        if (array_key_exists($k, $this->data)) {
+            return $this->data[$k];
         }
 
         $trace = debug_backtrace();
         trigger_error(
-            'Undefined property via __get(): ' . $key .
-            ' in ' . $trace[0]['file'] .
-            ' on line ' . $trace[0]['line'],
-            E_USER_ERROR);
+            'Undefined property via __get(): ' . $key
+            . ' in ' . $trace[0]['file']
+            . ' on line ' . $trace[0]['line'],
+            E_USER_WARNING,
+        );
 
         return null;
     }
@@ -126,33 +132,32 @@ abstract class Entity implements \JsonSerializable
      *
      * @return void
      */
-    public function __set($key, $val)
+    public function __set(string $key, mixed $val): void
     {
-        $setter = "set" . ucfirst($key);
+        $k = $key;
+        $v = $val;
+        $setter = "set" . ucfirst($k);
         if ($this->initialized && method_exists($this, $setter)) {
-            return $this->$setter($val);
+            $this->$setter($v);
         }
-        if (array_key_exists($key, $this->data) || !$this->initialized) {
+        if (array_key_exists($k, $this->data) || !$this->initialized) {
             // add value if property exists and is not primary
-            if (!in_array($key, static::$primary) || !$this->initialized) {
-                $this->dirty[$key] = (isset($this->dirty[$key]) && $this->dirty[$key] == true) || (
-                    (isset($this->data[$key]) && $this->data[$key] != $val)
-                    || !isset($this->data[$key])
+            if (!in_array($k, static::$primary) || !$this->initialized) {
+                $this->dirty[$k] = (isset($this->dirty[$k]) && $this->dirty[$k] == true) || (
+                    (isset($this->data[$k]) && $this->data[$k] != $v)
+                    || !isset($this->data[$k])
                 );
-                $this->data[$key] = $val;
+                $this->data[$k] = $v;
             }
-
-            return $this;
         }
 
         $trace = debug_backtrace();
         trigger_error(
-            'Undefined property via __set(): ' . $key .
-            ' in ' . $trace[0]['file'] .
-            ' on line ' . $trace[0]['line'],
-            E_USER_NOTICE);
-
-        return $this;
+            'Undefined property via __set(): ' . $key
+            . ' in ' . $trace[0]['file']
+            . ' on line ' . $trace[0]['line'],
+            E_USER_WARNING,
+        );
     }
     // }}}
 
@@ -166,19 +171,20 @@ abstract class Entity implements \JsonSerializable
      * @param string $key
      * @param mixed $value
      *
-     * @return void
+     * @return mixed
      */
-    public function __call($name, $arguments)
+    public function __call(string $name, ?array $arguments): mixed
     {
-        $prefix = substr($name, 0, 3);
-        $key = lcFirst(substr($name, 3));
+        $n = $name;
+        $prefix = substr($n, 0, 3);
+        $key = lcfirst(substr($n, 3));
 
         if ($prefix == "set") {
             if (array_key_exists($key, static::$fields)) {
                 $this->$key = $arguments[0];
             }
             return $this;
-        } else if ($prefix == "get") {
+        } elseif ($prefix == "get") {
             if (array_key_exists($key, static::$fields)) {
                 return $this->$key;
             }
@@ -186,10 +192,11 @@ abstract class Entity implements \JsonSerializable
 
         $trace = debug_backtrace();
         trigger_error(
-            'Undefined method via __call(): ' . $name .
-            ' in ' . $trace[0]['file'] .
-            ' on line ' . $trace[0]['line'],
-            E_USER_NOTICE);
+            'Undefined method via __call(): ' . $name
+            . ' in ' . $trace[0]['file']
+            . ' on line ' . $trace[0]['line'],
+            E_USER_WARNING,
+        );
 
         return false;
     }
@@ -203,15 +210,15 @@ abstract class Entity implements \JsonSerializable
      *
      * @param string $key
      *
-     * @return mixed
+     * @return bool
      */
-    public function __isset($key)
+    public function __isset($key): bool
     {
         $getter = "get" . ucfirst($key);
         if (method_exists($this, $getter)) {
             return true;
         }
-        return (isset($this->data[$key]));
+        return isset($this->data[$key]);
     }
     // }}}
 
@@ -222,12 +229,12 @@ abstract class Entity implements \JsonSerializable
      * @param string $prefix = ""
      * @return array of field names
      **/
-    protected static function getFields($prefix = "")
+    protected static function getFields($prefix = ""): array
     {
         $fields = array_keys(static::$fields);
 
         if ($prefix !== "") {
-            $fields = array_map(function($val) use ($prefix) {
+            $fields = array_map(function ($val) use ($prefix) {
                 return $prefix . "." . $val;
             }, $fields);
         }
@@ -242,10 +249,11 @@ abstract class Entity implements \JsonSerializable
      *
      * Sets object data with data array instead of setting properties explicitly
      *
-     * @param mixed $data
-     * @return void
+     * @param array  $data
+     *
+     * @return self
      **/
-    public function setData($data)
+    public function setData(array $data): self
     {
         foreach ($data as $key => $value) {
             $this->$key = $value;
@@ -258,15 +266,17 @@ abstract class Entity implements \JsonSerializable
     // {{{ __sleep()
     /**
      * allows Depage\Db\Pdo-object to be serialized
+     *
+     * @return array of properties to serialize
      */
-    public function __sleep()
+    public function __sleep(): array
     {
-        return array(
+        return [
             'initialized',
             'data',
             'types',
             'dirty',
-        );
+        ];
     }
     // }}}
 
@@ -274,10 +284,9 @@ abstract class Entity implements \JsonSerializable
     /**
      * @brief jsonSerialize
      *
-     * @param mixed
-     * @return void
+     * @return array
      **/
-    public function jsonSerialize():mixed
+    public function jsonSerialize(): array
     {
         return $this->data;
     }

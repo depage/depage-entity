@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file    PdoEntity.php
  *
@@ -6,6 +7,7 @@
  *
  * copyright (c) 2006-2017 Frank Hellenkamp [jonas@depage.net]
  */
+
 namespace Depage\Entity;
 
 abstract class PdoEntity extends Entity
@@ -35,11 +37,13 @@ abstract class PdoEntity extends Entity
     /**
      * @brief loadBy
      *
-     * @param mixed $
-     * @return void
+     * @param mixed $pdo
+     * @param array $search
+     * @param array $order
+     *
+     * @return attay of loaded entities
      **/
-    static public function loadBy($pdo, Array $search, Array $order = []) {
-    }
+    public static function loadBy(\Depage\Db\Pdo $pdo, array $search, array $order = []): array {}
     // }}}
     // {{{ save()
     /**
@@ -56,23 +60,17 @@ abstract class PdoEntity extends Entity
     /**
      * @brief onLoad
      *
-     * @param mixed
      * @return void
      **/
-    protected function onLoad()
-    {
-    }
+    protected function onLoad(): void {}
     // }}}
     // {{{ onSave()
     /**
      * @brief onSave
      *
-     * @param mixed
      * @return void
      **/
-    protected function onSave()
-    {
-    }
+    protected function onSave(): void {}
     // }}}
 
     // helpers
@@ -80,23 +78,26 @@ abstract class PdoEntity extends Entity
     /**
      * @brief sqlConditionFor
      *
-     * @param mixed $name, $values
-     * @return void
+     * @param string $name
+     * @param array $values
+     * @param array $params
+     *
+     * @return string
      **/
-    protected static function sqlConditionFor($name, $values, &$params)
+    protected static function sqlConditionFor(string $name, array $values, &$params): string
     {
         $escapedName = str_replace(".", "_", $name);
         if (!is_array($values)) {
             $params[$escapedName] = $values;
             return "$name = :$escapedName";
-        } else {
-            $where = "$name IN (";
-            foreach ($values as $key => $val) {
-                $params["$escapedName$key"] = $val;
-                $where .= ":$escapedName$key,";
-            }
-            return rtrim($where, ",") . ")";
         }
+
+        $where = "$name IN (";
+        foreach ($values as $key => $val) {
+            $params["$escapedName$key"] = $val;
+            $where .= ":$escapedName$key,";
+        }
+        return rtrim($where, ",") . ")";
     }
     // }}}
     // {{{ dateTimestamp()
@@ -104,9 +105,10 @@ abstract class PdoEntity extends Entity
      * @brief
      *
      * @param mixed $timestamp = null
-     * @return void
+     *
+     * @return string
      **/
-    public static function dateTimestamp($timestamp = null)
+    public static function dateTimestamp($timestamp = null): string
     {
         if ($timestamp === null) {
             $timestamp = time();
@@ -119,10 +121,12 @@ abstract class PdoEntity extends Entity
     /**
      * @brief escapeLike
      *
-     * @param mixed $s, $e
-     * @return void
+     * @param string $s
+     * @param string $e
+     *
+     * @return string
      **/
-    static public function escapeLike($s, $e)
+    public static function escapeLike($s, $e): string
     {
         return str_replace([$e, '_', '%'], ["{$e}{$e}", "{$e}_", "{$e}%"], $s);
     }
@@ -131,16 +135,18 @@ abstract class PdoEntity extends Entity
     // {{{ __sleep()
     /**
      * allows Depage\Db\Pdo-object to be serialized
+     *
+     * @return array of properties to serialize
      */
-    public function __sleep()
+    public function __sleep(): array
     {
-        return array(
+        return [
             'pdo',
             'initialized',
             'data',
             'types',
             'dirty',
-        );
+        ];
     }
     // }}}
 }
